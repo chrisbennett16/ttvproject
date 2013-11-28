@@ -6,6 +6,7 @@ Created on Thu Nov 21 13:38:23 2013
 """
 #period in this is not accurate as we have step errors, therefore will colculate it bases on the semi major axis
 #problem with acceleration over or under powered by stepping
+#problem is because of defining smaxis
 from pylab import*
 import matplotlib.pylab as plt
 
@@ -33,7 +34,16 @@ def effaccstar(angle1,ecc1,a0):
     
     effacc=cos(angle3)/(distance1**2)
     return effacc
-    
+def angle5(x1,y1,ecc1,angle1):
+    if (x1==0 and y1>0):
+        angle=pi-atan(-(cos(angle1)+ecc1)/sin(angle1))
+    elif (x1==0 and y1<0):
+        angle=-atan(-(cos(angle1)+ecc1)/sin(angle1))
+    elif (angle1==0 or angle1==pi):
+        angle=0
+    else:
+        angle=atan(y1/x1)+pi/2-atan(-(cos(angle1)+ecc1)/sin(angle1))
+    return angle
 
 # inouts, require masses periods radii and step number for 2nd planet orbit
 
@@ -48,13 +58,15 @@ step_number=int(raw_input("How many steps?"))
 smAxisERadii1=raw_input("What is the SemiMajorAxis in Earth Orbits?")
 smAxis1=float(smAxisERadii1)*1.49e11
 period1=(smAxis1**3*4*pi**2/(star_mass*G))**0.5
-velocity1=2*pi*smAxis1/period1
 planet_radius1=6.371e6*float(raw_input('planet radius 1 in earth radii?'))
 planet_mass1=6e24*float(raw_input('planet mass 1 in earth masses?'))
 ecc1=float(raw_input("What is the eccentricity of planet 1's orbit?"))
+latus1=smAxis1*(1-ecc1**2)
+velocity1=(G*star_mass*(2/latus1-1/smAxis1))**0.5
+
 planet_x1=0.0
 
-planet_y1=smAxis1
+planet_y1=latus1
 
 plot1=[]
     
@@ -68,13 +80,14 @@ for t in range(1,int(2*step_number)):
         angle1=pi/2
     else:
         angle1=atan(planet_y1/planet_x1)+2*pi
-    distance1=smAxis1/(1+ecc1*cos(angle1))
-    planet_a1=-effaccstar(angle1,ecc1,smAxis1)*(G*star_mass)
+    distance1=latus1/(1+ecc1*cos(angle1))
+    planet_a1=-effaccstar(angle1,ecc1,latus1)*(G*star_mass)
     velocity1=velocity1+planet_a1*period1/step_number
-    angle1=angle1+velocity1*period1/(step_number*distance1)
-    distance1=smAxis1/(1+ecc1*cos(angle1))    
+    angle1=angle1+velocity1*period1*abs(cos(angle5(planet_x1,planet_y1,ecc1,angle1)))/(step_number*distance1)
+    distance1=latus1/(1+ecc1*cos(angle1))    
     planet_x1=distance1*cos(angle1)
     planet_y1=distance1*sin(angle1)
+    plot1.append(planet_x1)
     
 plot(plot1)
     
