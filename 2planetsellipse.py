@@ -67,6 +67,16 @@ def effaccplanet(anglea, ecca, a0, x2, y2):
     
     effaccp=-cos(angle04)/((x1-x2)**2+(y1-y2)**2)
     return effaccp
+def angle5(x1,y1,ecc,angle):
+    if (x1==0 and y1>0):
+        angleo=pi-atan(-(cos(angle)+ecc)/sin(angle))
+    elif (x1==0 and y1<0):
+        angleo=-atan(-(cos(angle)+ecc)/sin(angle))
+    elif (angle==0 or angle==pi):
+        angleo=0
+    else:
+        angleo=atan(y1/x1)+pi/2-atan(-(cos(angle)+ecc)/sin(angle))
+    return angleo
     
 
 # inouts, require masses periods radii and step number for 2nd planet orbit
@@ -86,7 +96,7 @@ period1=(smAxis1**3*4*pi**2/(star_mass*G))**0.5
 planet_radius1=6.371e6*float(raw_input('planet radius 1 in earth radii?'))
 planet_mass1=6e24*float(raw_input('planet mass 1 in earth masses?'))
 ecc1=float(raw_input("What is the eccentricity of planet 1's orbit?"))
-velocity1=(G*star_mass*(2/(smAxis1*(1-ecc1**2))-1/smAxis1))**(0.5)
+velocity1=(G*star_mass*(2/latus1-1/smAxis1))**(0.5)
 
 
 smAxisERadii2=raw_input("What is the SemiMajorAxis of planet 2 in Earth Orbits?")
@@ -96,18 +106,19 @@ period2=(smAxis2**3*4*pi**2/(star_mass*G))**0.5
 planet_radius2=6.371e6*float(raw_input('planet radius 2 in earth radii?'))
 planet_mass2=6e24*float(raw_input('planet mass 2 in earth masses?'))
 ecc2=float(raw_input("What is the eccentricity of planet 2's orbit?"))
-velocity2=(G*star_mass*(2/(smAxis2*(1-ecc2**2))-1/smAxis2))**(0.5)
+velocity2=(G*star_mass*(2/latus2-1/smAxis2))**(0.5)
 
 
-planet_x2=0.0
+
 latus2=smAxis2*(1-ecc2**2)
+planet_x2=0.0
 planet_y2=latus2
 latus1=smAxis1*(1-ecc1**2)
 planet_x1=0.0
 planet_y1=latus1
 plot2=[]
 plot1=[]
-
+plot3=[]
 transit_on=1
 transit_on2=1
 s=0
@@ -132,31 +143,35 @@ for t in range(1,int(20*step_number)):
         angle2=pi/2
     else:
         angle2=atan(planet_y2/planet_x2)+2*pi
+    
     distance1=latus1/(1+ecc1*cos(angle1))
     distance2=latus2/(1+ecc2*cos(angle2))
     planet_a1=effaccstar(angle1,ecc1,latus1)*(G*star_mass)+effaccplanet(angle1, ecc1, latus1, planet_x2, planet_y2)*G*planet_mass2
     planet_a2=effaccstar(angle2,ecc2,latus2)*(G*star_mass)+effaccplanet(angle2, ecc2, latus2, planet_x1, planet_y1)*G*planet_mass1
     velocity1=velocity1+planet_a1*period1/step_number
     velocity2=velocity2+planet_a2*period1/step_number
-    angle1=angle1+velocity1*period1/(step_number*distance1)
-    angle2=angle2+velocity2*period1/(step_number*distance2)
+    angle1=angle1+velocity1*period1*abs(cos(angle5(planet_x1,planet_y1,ecc1,angle1)))/(step_number*distance1)
+    angle2=angle2+velocity2*period1*abs(cos(angle5(planet_x2,planet_y2,ecc2,angle2)))/(step_number*distance2)
     distance1=latus1/(1+ecc1*cos(angle1))
     distance2=latus2/(1+ecc2*cos(angle2))    
     planet_x1=distance1*cos(angle1)
     planet_y1=distance1*sin(angle1)
     planet_x2=distance2*cos(angle2)
     planet_y2=distance2*sin(angle2)
+    plot3.append(planet_x1)
     #transit detector required
     if planet_x1<star_radius+planet_radius1 and planet_x1>-star_radius-planet_radius1 and planet_y1>0 and transit_on==1:
         transit_on=0
         transit_counter1=transit_counter1+1
         print 'Transit for planet 1 '+ str(t)
-        if s!=0 and transit_counter1!=2:
-            plot1.append(t-s)
+        if transit_counter1!=1 and transit_counter1!=2:
+            plot1.append(t)
+        elif transit_counter1==2:
+            first_transit=t
         s=t
     elif transit_on==0 and not (planet_x1<star_radius+planet_radius1 and planet_x1>-star_radius-planet_radius1 and planet_y1>0):
         transit_on=1
-        print 'Transit finished ' + str(t-s)
+        print 'Transit finished ' + str(t)
  
     if planet_x2<star_radius+planet_radius2 and planet_x2>-star_radius-planet_radius2 and planet_y2>0 and transit_on2==1:
         print 'To2 '+ str(t)
@@ -164,10 +179,14 @@ for t in range(1,int(20*step_number)):
         transit_counter2=transit_counter2+1
     elif transit_on2==0 and not (planet_x2<star_radius+planet_radius2 and planet_x2>-star_radius-planet_radius2 and planet_y2>0):
         transit_on2=1
-        print 'Tf' +str(t-1)    
+        print 'Tf' +str(t-1)
+
+plot2=[0]*len(plot1)
+average_transit=(float(s)-float(first_transit))/(transit_counter1-2)
+print average_transit
+for a in range(0,len(plot1)):
     
-    
-    
-plot(plot1)
+    plot2[a]=plot1[a]-average_transit*(a+2)
+plot(plot2)
 
     
