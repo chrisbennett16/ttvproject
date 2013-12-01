@@ -88,7 +88,7 @@ stepNumber=int(raw_input("How many steps?"))
 
 #for planet1
 
-period1=365*24*3600*float(raw_input("What is the period of planet 1 in years?"))
+period1=24*3600*float(raw_input("What is the period of planet 1 in days?"))
 smAxis1=(G*starMass*period1**2/(4*pi**2))**(1.0/3)
 
 planetRadius1=6.371e6*float(raw_input('planet radius 1 in earth radii?'))
@@ -98,7 +98,7 @@ latus1=smAxis1*(1-ecc1**2)
 velocity1=(G*starMass*(2/latus1-1/smAxis1))**(0.5)
 
 
-period2=365*24*3600*float(raw_input("What is the period of planet 2 in years?"))
+period2=24*3600*float(raw_input("What is the period of planet 2 in days?"))
 smAxis2=(G*starMass*period2**2/(4*pi**2))**(1.0/3)
 
 planetRadius2=6.371e6*float(raw_input('planet radius 2 in earth radii?'))
@@ -107,7 +107,7 @@ ecc2=float(raw_input("What is the eccentricity of planet 2's orbit?"))
 latus2=smAxis2*(1-ecc2**2)
 velocity2=(G*starMass*(2/latus2-1/smAxis2))**(0.5)
 
-period3=365*24*3600*float(raw_input("What is the period of planet 3 in years?"))
+period3=24*3600*float(raw_input("What is the period of planet 3 in days?"))
 smAxis3=(G*starMass*period3**2/(4*pi**2))**(1.0/3)
 
 planetRadius3=6.371e6*float(raw_input('planet radius 3 in earth radii?'))
@@ -135,7 +135,7 @@ transitCounter1=0
 transitCounter2=0
 transitCounter3=0
 
-for t in range(1,int(4*stepNumber)):
+for t in range(1,int(80*stepNumber)):
     if (planetX1>0 and planetY1>=0):    
         orbitAngle1=atan(planetY1/planetX1)
     elif (planetX1<0):
@@ -187,29 +187,28 @@ for t in range(1,int(4*stepNumber)):
     planetY2=distance2*sin(orbitAngle2)
     planetX3=distance3*cos(orbitAngle3)
     planetY3=distance3*sin(orbitAngle3)    
-    plot3.append(velocity1)
     #transit detector required
     if planetX1<starRadius+planetRadius1 and planetX1>-starRadius-planetRadius1 and planetY1>0 and transitOn==1:
         transitOn=0
         transitCounter1=transitCounter1+1
         print 'Transit for planet 1 '+ str(t)
-        if transitCounter1!=1 and transitCounter1!=2:
-            plot1.append(t)
-        elif transitCounter1==2:
+        if transitCounter1==2:
             firstTransit=t
+        if transitCounter1!=1:
+            plot3.append(t)
         lastTransitStart=t
     elif transitOn==0 and not (planetX1<starRadius+planetRadius1 and planetX1>-starRadius-planetRadius1 and planetY1>0):
         transitOn=1
         print 'Transit finished ' + str(t)
  
-    if planetY2<starRadius+planetRadius2 and planetY2>-starRadius-planetRadius2 and planetY2>0 and transitOn2==1:
+    if planetX2<starRadius+planetRadius2 and planetX2>-starRadius-planetRadius2 and planetY2>0 and transitOn2==1:
         print 'To2 '+ str(t)
         transitOn2=0
         transitCounter2=transitCounter2+1
     elif transitOn2==0 and not (planetX2<starRadius+planetRadius2 and planetX2>-starRadius-planetRadius2 and planetY2>0):
         transitOn2=1
         print 'Tf' +str(t-1)
-    if planetY3<starRadius+planetRadius3 and planetY3>-starRadius-planetRadius3 and planetY3>0 and transitOn3==1:
+    if planetX3<starRadius+planetRadius3 and planetX3>-starRadius-planetRadius3 and planetY3>0 and transitOn3==1:
         print 'To3 '+ str(t)
         transitOn3=0
         transitCounter3=transitCounter3+1
