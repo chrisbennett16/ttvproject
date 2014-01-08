@@ -91,7 +91,6 @@ for a in range(0,planet_number):
 plot1=[]
 plot2=[]
 plot3=[]
-    
 for t in range(1,5*step_number):
     for a in range(1,planet_number+1):
         planet[a].da=0.0
@@ -114,26 +113,28 @@ for t in range(1,5*step_number):
         planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv    
         planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(step_number*planet[a].distance)
         planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+    sunXPosition=0.0
     for a in range(1,planet_number+1):
         planet[a].x=planet[a].distance*cos(planet[a].angle)
         planet[a].y=planet[a].distance*sin(planet[a].angle)
+        sunXPosition=sunXPosition-planet[a].x*planet[a].mass/starMass
+    plot3.append(sunXPosition)
     #finding the transits of the planets
     for a in range(1,planet_number+1):
         if planet[a].y>0:
-            if planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].transit==0:
+            if planet[a].x<starRadius+planet[a].radius+sunXPosition and planet[a].x>-starRadius-planet[a].radius+sunXPosition and planet[a].transit==0:
                 planet[a].transitCounter=planet[a].transitCounter+1            
                 planet[a].transit=1            
                 print 'Transit start for planet ' + str(a) + ' at ' + str(t)
                 if a==1:
                     plot1.append(t)
                 planet[a].lastTransit=t
-            elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius):
+            elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius+sunXPosition and planet[a].x>-starRadius-planet[a].radius+sunXPosition):
                 planet[a].transit=0
                 print 'Transit end for planet ' +str(a) + ' at ' + str(t)
-    plot3.append(planet[1].dv)
 averagePeriod=planet[1].lastTransit/planet[1].transitCounter
 for a in range (0, len(plot1)):
     plot2.append(plot1[a]-(averagePeriod*(a+1)))
     
     
-plot(plot2)
+plot(plot3)
