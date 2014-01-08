@@ -92,7 +92,7 @@ plot1=[]
 plot2=[]
 plot3=[]
     
-for t in range(1,100*step_number):
+for t in range(1,5*step_number):
     for a in range(1,planet_number+1):
         planet[a].da=0.0
         if (planet[a].x>0 and planet[a].y>=0):    
@@ -119,16 +119,17 @@ for t in range(1,100*step_number):
         planet[a].y=planet[a].distance*sin(planet[a].angle)
     #finding the transits of the planets
     for a in range(1,planet_number+1):
-        if planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0 and planet[a].transit==0:
-            planet[a].transitCounter=planet[a].transitCounter+1            
-            planet[a].transit=1            
-            print 'Transit start for planet ' + str(a) + ' at ' + str(t)
-            if a==1:
-                plot1.append(t)
-            planet[a].lastTransit=t
-        elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0):
-            planet[a].transit=0
-            print 'Transit end for planet ' +str(a) + ' at ' + str(t)
+        if planet[a].y>0:
+            if planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].transit==0:
+                planet[a].transitCounter=planet[a].transitCounter+1            
+                planet[a].transit=1            
+                print 'Transit start for planet ' + str(a) + ' at ' + str(t)
+                if a==1:
+                    plot1.append(t)
+                planet[a].lastTransit=t
+            elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius):
+                planet[a].transit=0
+                print 'Transit end for planet ' +str(a) + ' at ' + str(t)
     plot3.append(planet[1].dv)
 averagePeriod=planet[1].lastTransit/planet[1].transitCounter
 for a in range (0, len(plot1)):
