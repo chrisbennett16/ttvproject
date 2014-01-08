@@ -10,6 +10,7 @@ Created on Fri Nov 22 20:50:03 2013
 #for a transit with 0.5 ecc the accel must be multiplied by 1.21459233575 to get the correct period, get this by minimisation
 #will continue anyway to get interacting orbits in the same way assuming no path change
 #add in something to detect if paths cross as it will be unstable
+#for noncircular orbits the velocity for each loop is slightly under
 from pylab import*
 import matplotlib.pylab as plt
 
@@ -89,31 +90,28 @@ step_number=int(raw_input("How many steps?"))
 
 #for planet1
 
-smAxisERadii1=raw_input("What is the SemiMajorAxis in Earth Orbits?")
-smAxis1=float(smAxisERadii1)*1.49e11
-period1=(smAxis1**3*4*pi**2/(star_mass*G))**0.5
+period1=365*24*3600*float(raw_input("What is the period of planet 1 in years?"))
+smAxis1=(G*star_mass*period1**2/(4*pi**2))**(1.0/3)
 
 planet_radius1=6.371e6*float(raw_input('planet radius 1 in earth radii?'))
 planet_mass1=6e24*float(raw_input('planet mass 1 in earth masses?'))
 ecc1=float(raw_input("What is the eccentricity of planet 1's orbit?"))
+latus1=smAxis1*(1-ecc1**2)
 velocity1=(G*star_mass*(2/latus1-1/smAxis1))**(0.5)
 
 
-smAxisERadii2=raw_input("What is the SemiMajorAxis of planet 2 in Earth Orbits?")
-smAxis2=float(smAxisERadii2)*1.49e11
-period2=(smAxis2**3*4*pi**2/(star_mass*G))**0.5
+period2=365*24*3600*float(raw_input("What is the period of planet 2 in years?"))
+smAxis2=(G*star_mass*period2**2/(4*pi**2))**(1.0/3)
 
 planet_radius2=6.371e6*float(raw_input('planet radius 2 in earth radii?'))
 planet_mass2=6e24*float(raw_input('planet mass 2 in earth masses?'))
 ecc2=float(raw_input("What is the eccentricity of planet 2's orbit?"))
+latus2=smAxis2*(1-ecc2**2)
 velocity2=(G*star_mass*(2/latus2-1/smAxis2))**(0.5)
 
 
-
-latus2=smAxis2*(1-ecc2**2)
 planet_x2=0.0
 planet_y2=latus2
-latus1=smAxis1*(1-ecc1**2)
 planet_x1=0.0
 planet_y1=latus1
 plot2=[]
@@ -126,7 +124,7 @@ transit_counter1=0
 transit_counter2=0
 print period1, period2
 
-for t in range(1,int(20*step_number)):
+for t in range(1,int(50*step_number)):
     if (planet_x1>0 and planet_y1>=0):    
         angle1=atan(planet_y1/planet_x1)
     elif (planet_x1<0):
@@ -158,7 +156,7 @@ for t in range(1,int(20*step_number)):
     planet_y1=distance1*sin(angle1)
     planet_x2=distance2*cos(angle2)
     planet_y2=distance2*sin(angle2)
-    plot3.append(planet_x1)
+    
     #transit detector required
     if planet_x1<star_radius+planet_radius1 and planet_x1>-star_radius-planet_radius1 and planet_y1>0 and transit_on==1:
         transit_on=0
@@ -182,11 +180,14 @@ for t in range(1,int(20*step_number)):
         print 'Tf' +str(t-1)
 
 plot2=[0]*len(plot1)
+plot3=[0]*(len(plot1)-1)
 average_transit=(float(s)-float(first_transit))/(transit_counter1-2)
 print average_transit
 for a in range(0,len(plot1)):
-    
     plot2[a]=plot1[a]-average_transit*(a+2)
-plot(plot2)
-
+    if a!=0:
+        plot3[a-1]=plot1[a]-plot1[a-1]
+    
+plot(plot3)
+print plot1
     
