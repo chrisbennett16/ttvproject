@@ -31,6 +31,8 @@ class Planet(object):
         self.lastTransit=0
         self.transitCounter=0
         self.vchange=0.0
+        self.orbitCounter=0
+        self.orbitTest=1
         
 def effaccplanet(anglea, ecca, a0, x2, y2):
     distance=a0/(1+ecca*cos(anglea))
@@ -100,162 +102,65 @@ plot8=[]
 plot9=[]
 plot10=[]
 plot11=[]
-
+for a in range(1,planet_number+1):
+    planet[a].vchange=0.0
 #code to find average dv
 testSteps=1
 for a in range(1,planet_number+1):
     testSteps=testSteps*int(planet[a].periodYears)
     
 print testSteps
-for t in range(1,testSteps*100*10):
+for repeats in range(0,5):
     for a in range(1,planet_number+1):
-        planet[a].da=0.0
-        if (planet[a].x>0 and planet[a].y>=0):    
-            planet[a].angle=atan(planet[a].y/planet[a].x)
-        elif (planet[a].x<0):
-            planet[a].angle=atan(planet[a].y/planet[a].x)+pi
-        elif (planet[a].x==0 and planet[a].y>0):
-            planet[a].angle=pi/2
-        elif (planet[a].x==0 and planet[a].y<0):
-            planet[a].angle=3*pi/2
-        else:
-            planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-        for b in range (1,planet_number+1):
-            if b!=a:
-                # toavoid calculating the acc from itself
-                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
-        planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/100
-        planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv    
-        planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(100*planet[a].distance)
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-    for a in range(1,planet_number+1):
-        planet[a].x=planet[a].distance*cos(planet[a].angle)
-        planet[a].y=planet[a].distance*sin(planet[a].angle)
-    plot3.append(planet[1].dv)
-    plot4.append(planet[2].dv)
-    plot7.append(planet[1].dv)
-planet[1].vchange=sum(plot3)/len(plot3)
-print planet[1].vchange
-planet[2].vchange=sum(plot4)/len(plot4)
-print planet[2].vchange
+        planet[a].x=0.0
+        planet[a].y=planet[a].latus
+        planet[a].dv=0.0
+        planet[a].orbitCounter=0
+        planet[a].orbitTest=1
+        del plot3[:]
+        del plot4[:]
+    for t in range(1,testSteps*1000*10):
+        for a in range(1,planet_number+1):
+            planet[a].da=0.0
+            if (planet[a].x>0 and planet[a].y>=0):    
+                planet[a].angle=atan(planet[a].y/planet[a].x)
+            elif (planet[a].x<0):
+                planet[a].angle=atan(planet[a].y/planet[a].x)+pi
+            elif (planet[a].x==0 and planet[a].y>0):
+                planet[a].angle=pi/2
+            elif (planet[a].x==0 and planet[a].y<0):
+                planet[a].angle=3*pi/2
+            else:
+                planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
+            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+            for b in range (1,planet_number+1):
+                if b!=a:
+                    # toavoid calculating the acc from itself
+                    planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
+            planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/1000
+            planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange    
+            planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(1000*planet[a].distance)
+            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+        for a in range(1,planet_number+1):
+            planet[a].x=planet[a].distance*cos(planet[a].angle)
+            planet[a].y=planet[a].distance*sin(planet[a].angle)
+            if planet[a].x<0.0 and planet[a].orbitTest==0:
+                planet[a].orbitCounter=planet[a].orbitCounter+1
+                planet[a].orbitTest=1
+            elif planet[a].orbitTest==1 and planet[a].x>0.0:
+                planet[a].orbitTest=0
+        if repeats==0:
+            plot7.append(planet[1].x)
+        if planet[1].orbitCounter==(10*testSteps-1):
+            break
+        plot3.append(planet[1].dv)
+        plot4.append(planet[2].dv)
+        
+    planet[1].vchange=sum(plot3)/len(plot3)
+    print planet[1].vchange
+    planet[2].vchange=sum(plot4)/len(plot4)
+    print planet[2].vchange
 
-
-for a in range(1,planet_number+1):
-    planet[a].x=0.0
-    planet[a].y=planet[a].latus
-    planet[a].dv=0.0
-for t in range(1,testSteps*100*10):
-    for a in range(1,planet_number+1):
-        planet[a].da=0.0
-        if (planet[a].x>0 and planet[a].y>=0):    
-            planet[a].angle=atan(planet[a].y/planet[a].x)
-        elif (planet[a].x<0):
-            planet[a].angle=atan(planet[a].y/planet[a].x)+pi
-        elif (planet[a].x==0 and planet[a].y>0):
-            planet[a].angle=pi/2
-        elif (planet[a].x==0 and planet[a].y<0):
-            planet[a].angle=3*pi/2
-        else:
-            planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-        for b in range (1,planet_number+1):
-            if b!=a:
-                # toavoid calculating the acc from itself
-                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
-        planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/100
-        planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange    
-        planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(100*planet[a].distance)
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-    for a in range(1,planet_number+1):
-        planet[a].x=planet[a].distance*cos(planet[a].angle)
-        planet[a].y=planet[a].distance*sin(planet[a].angle)
-    plot5.append(planet[1].dv)
-    plot6.append(planet[2].dv)
-    plot7.append(planet[1].dv)
-planet[1].vchange=sum(plot5)/len(plot5)
-print planet[1].vchange
-planet[2].vchange=sum(plot6)/len(plot6)
-print planet[2].vchange
-
-for a in range(1,planet_number+1):
-    planet[a].x=0.0
-    planet[a].y=planet[a].latus
-    planet[a].dv=0.0
-
-
-for t in range(1,testSteps*100*10):
-    for a in range(1,planet_number+1):
-        planet[a].da=0.0
-        if (planet[a].x>0 and planet[a].y>=0):    
-            planet[a].angle=atan(planet[a].y/planet[a].x)
-        elif (planet[a].x<0):
-            planet[a].angle=atan(planet[a].y/planet[a].x)+pi
-        elif (planet[a].x==0 and planet[a].y>0):
-            planet[a].angle=pi/2
-        elif (planet[a].x==0 and planet[a].y<0):
-            planet[a].angle=3*pi/2
-        else:
-            planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-        for b in range (1,planet_number+1):
-            if b!=a:
-                # toavoid calculating the acc from itself
-                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
-        planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/100
-        planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange    
-        planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(100*planet[a].distance)
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-    for a in range(1,planet_number+1):
-        planet[a].x=planet[a].distance*cos(planet[a].angle)
-        planet[a].y=planet[a].distance*sin(planet[a].angle)
-    plot8.append(planet[1].dv)
-    plot9.append(planet[2].dv)
-    plot7.append(planet[1].dv)
-planet[1].vchange=sum(plot8)/len(plot8)
-print planet[1].vchange
-planet[2].vchange=sum(plot9)/len(plot9)
-print planet[2].vchange
-
-
-
-for a in range(1,planet_number+1):
-    planet[a].x=0.0
-    planet[a].y=planet[a].latus
-    planet[a].dv=0.0
-
-for t in range(1,testSteps*100*10):
-    for a in range(1,planet_number+1):
-        planet[a].da=0.0
-        if (planet[a].x>0 and planet[a].y>=0):    
-            planet[a].angle=atan(planet[a].y/planet[a].x)
-        elif (planet[a].x<0):
-            planet[a].angle=atan(planet[a].y/planet[a].x)+pi
-        elif (planet[a].x==0 and planet[a].y>0):
-            planet[a].angle=pi/2
-        elif (planet[a].x==0 and planet[a].y<0):
-            planet[a].angle=3*pi/2
-        else:
-            planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-        for b in range (1,planet_number+1):
-            if b!=a:
-                # toavoid calculating the acc from itself
-                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
-        planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/100
-        planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange    
-        planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(100*planet[a].distance)
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
-    for a in range(1,planet_number+1):
-        planet[a].x=planet[a].distance*cos(planet[a].angle)
-        planet[a].y=planet[a].distance*sin(planet[a].angle)
-    plot10.append(planet[1].dv)
-    plot11.append(planet[2].dv)
-    plot7.append(planet[1].dv)
-planet[1].vchange=sum(plot10)/len(plot10)
-print planet[1].vchange
-planet[2].vchange=sum(plot11)/len(plot11)
-print planet[2].vchange
 
 
 
@@ -265,7 +170,7 @@ for a in range(1,planet_number+1):
     planet[a].dv=0.0
 
 
-for t in range(1,100*step_number):
+for t in range(1,50*step_number):
     for a in range(1,planet_number+1):
         planet[a].da=0.0
         if (planet[a].x>0 and planet[a].y>=0):    
@@ -302,10 +207,10 @@ for t in range(1,100*step_number):
         elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0):
             planet[a].transit=0
             print 'Transit end for planet ' +str(a) + ' at ' + str(t)
-    
+    plot10.append(planet[1].velocity)
 averagePeriod=float(planet[1].lastTransit)/planet[1].transitCounter
 print averagePeriod
 for a in range (0, len(plot1)):
-    plot2.append(plot1[a]-(averagePeriod*(a+1)))
+    plot2.append(plot1[a]-(step_number*(a+1)))
+plot(plot10)
     
-plot(plot2)
