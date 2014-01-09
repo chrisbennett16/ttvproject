@@ -108,7 +108,7 @@ for a in range(1,planet_number+1):
 testSteps=1
 for a in range(1,planet_number+1):
     testSteps=testSteps*int(planet[a].periodYears)
-    
+precision=1000
 print testSteps
 for repeats in range(0,5):
     for a in range(1,planet_number+1):
@@ -119,7 +119,7 @@ for repeats in range(0,5):
         planet[a].orbitTest=1
         del plot3[:]
         del plot4[:]
-    for t in range(1,testSteps*1000*10):
+    for t in range(1,(testSteps*10+1)*precision):
         for a in range(1,planet_number+1):
             planet[a].da=0.0
             if (planet[a].x>0 and planet[a].y>=0):    
@@ -137,9 +137,9 @@ for repeats in range(0,5):
                 if b!=a:
                     # toavoid calculating the acc from itself
                     planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
-            planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/1000
+            planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/precision
             planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange    
-            planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(1000*planet[a].distance)
+            planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(precision*planet[a].distance)
             planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
         for a in range(1,planet_number+1):
             planet[a].x=planet[a].distance*cos(planet[a].angle)
@@ -151,7 +151,7 @@ for repeats in range(0,5):
                 planet[a].orbitTest=0
         if repeats==0:
             plot7.append(planet[1].x)
-        if planet[1].orbitCounter==(10*testSteps-1):
+        if planet[1].orbitCounter==(10*testSteps):
             break
         plot3.append(planet[1].dv)
         plot4.append(planet[2].dv)
@@ -170,7 +170,7 @@ for a in range(1,planet_number+1):
     planet[a].dv=0.0
 
 
-for t in range(1,50*step_number):
+for t in range(1,300*step_number):
     for a in range(1,planet_number+1):
         planet[a].da=0.0
         if (planet[a].x>0 and planet[a].y>=0):    
@@ -208,9 +208,10 @@ for t in range(1,50*step_number):
             planet[a].transit=0
             print 'Transit end for planet ' +str(a) + ' at ' + str(t)
     plot10.append(planet[1].velocity)
-averagePeriod=float(planet[1].lastTransit)/planet[1].transitCounter
+averagePeriod=float((planet[1].lastTransit-plot1[0]))/(planet[1].transitCounter-1)
 print averagePeriod
 for a in range (0, len(plot1)):
     plot2.append(plot1[a]-(step_number*(a+1)))
 plot(plot10)
     
+print plot1[0]
