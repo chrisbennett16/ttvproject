@@ -39,6 +39,9 @@ class Planet(object):
         self.accMax=0.0
         self.dt=0.0
         self.dvlist=[]
+        self.transitTimes=[]
+        self.averagePeriod=0.0
+        self.ominusc=[]
 def effaccplanet(anglea, ecca, a0, x2, y2):
     distance=a0/(1+ecca*cos(anglea))
     x1=distance*cos(anglea)
@@ -170,17 +173,14 @@ for repeats in range(0,repeat):
         print a,planet[a].vchange
 
 
-
-print t
 for a in range(1,planet_number+1):
     planet[a].x=0.0
     planet[a].y=planet[a].latus
     planet[a].dv=0.0
     planet[a].accMean=planet[a].accTotal/t
-    print a,planet[a].accMean,planet[a].accTotal,planet[a].accMax
 dt=0.0
 t=0.0
-while t<(planet[1].period*2):
+while t<(planet[1].period*10):
     for a in range(1,planet_number+1):
         planet[a].da=0.0
         if (planet[a].x>0 and planet[a].y>=0):    
@@ -231,21 +231,22 @@ while t<(planet[1].period*2):
         if planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0 and planet[a].transit==0:
             planet[a].transitCounter=planet[a].transitCounter+1            
             planet[a].transit=1            
-            print 'Transit start for planet ' + str(a) + ' at ' + str(t)
-            if a==1:
-                plot1.append(t)
+            print 'Transit start for planet ' + str(a) + ' at ' + str(t) + ' with duration' + str(planet[a].velocity*starRadius+planet[a].radius*2)
+            planet[a].transitTimes.append(t)            
             planet[a].lastTransit=t
         elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0):
             planet[a].transit=0
-            print 'Transit end for planet ' +str(a) + ' at ' + str(t)
-    plot10.append(planet[1].velocity)
     plot8.append(planet[1].x)
     plot9.append(t)
-if planet[1].transitCounter>1:
-    averagePeriod=float((planet[1].lastTransit-plot1[0]))/(planet[1].transitCounter-1)
-else:
-    averagePeriod=planet[1].period
-for a in range (0, len(plot1)):
-    plot2.append(plot1[a]-(averagePeriod*(a+1)))
-plot([plot1[0]],[0],'ro')
+for a in range(1,planet_number +1):
+    if planet[a].transitCounter>1:
+        planet[a].averagePeriod=float((planet[a].lastTransit-planet[a].transitTimes[0]))/(planet[a].transitCounter-1)
+    else:
+        print 'period is not calculated for planet ' + str(a)
+        averagePeriod=planet[1].period
+    for b in range (0, len(planet[a].transitTimes)):
+        planet[a].ominusc.append(planet[a].transitTimes[b]-(planet[a].averagePeriod*(b+1)))
+        
+    print planet[a].averagePeriod-planet[a].period
+plot(planet[1].ominusc)
     
