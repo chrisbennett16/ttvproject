@@ -36,7 +36,6 @@ class Planet(object):
         self.orbitTest=1
         self.accTotal=0.0
         self.accMean=0.0
-        self.accMax=0.0
         self.dt=0.0
         self.dvlist=[]
         self.transitTimes=[]
@@ -101,17 +100,6 @@ for a in range(0,planet_number):
 #will sort transit detectors later and plotting
 plot1=[]
 plot2=[]
-plot3=[]
-plot4=[]
-plot5=[]
-plot6=[]
-plot7=[]
-plot8=[]
-plot9=[]
-plot10=[]
-plot11=[]
-for a in range(1,planet_number+1):
-    planet[a].vchange=0.0
 #code to find average dv
 testSteps=1
 for a in range(1,planet_number+1):
@@ -147,9 +135,6 @@ for repeats in range(0,repeat):
                     planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
             if repeats==(repeat-1):
                 planet[a].accTotal=planet[a].accTotal+abs(planet[a].da)
-                if planet[a].accMax<abs(planet[a].da):
-                    planet[a].accMax=abs(planet[a].da)
-
             planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/precision
             planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange       
             planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(precision*planet[a].distance)
@@ -162,8 +147,6 @@ for repeats in range(0,repeat):
                 planet[a].orbitTest=1
             elif planet[a].orbitTest==1 and planet[a].x>0.0:
                 planet[a].orbitTest=0
-        if repeats==0:
-            plot7.append(planet[1].x)
         if planet[1].orbitCounter==int(testSteps):
             break
         for a in range(1,planet_number+1):
@@ -180,7 +163,9 @@ for a in range(1,planet_number+1):
     planet[a].accMean=planet[a].accTotal/t
 dt=0.0
 t=0.0
-while t<(planet[1].period*10):
+stepCounter=0
+while t<(planet[1].period*5):
+    stepCounter=stepCounter+1
     for a in range(1,planet_number+1):
         planet[a].da=0.0
         if (planet[a].x>0 and planet[a].y>=0):    
@@ -236,8 +221,8 @@ while t<(planet[1].period*10):
             planet[a].lastTransit=t
         elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0):
             planet[a].transit=0
-    plot8.append(planet[1].x)
-    plot9.append(t)
+    plot1.append(planet[1].x)
+    plot2.append(t)
 for a in range(1,planet_number +1):
     if planet[a].transitCounter>1:
         planet[a].averagePeriod=float((planet[a].lastTransit-planet[a].transitTimes[0]))/(planet[a].transitCounter-1)
@@ -248,5 +233,6 @@ for a in range(1,planet_number +1):
         planet[a].ominusc.append(planet[a].transitTimes[b]-(planet[a].averagePeriod*(b+1)))
         
     print planet[a].averagePeriod-planet[a].period
-plot(planet[1].ominusc)
+plot(plot2,plot1)
     
+print stepCounter
