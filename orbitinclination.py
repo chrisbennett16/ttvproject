@@ -13,19 +13,21 @@ import matplotlib.pylab as plt
 from math import pi, cos, sin, acos, asin, atan
 G=6.67384e-11
 class Planet(object):
-    def __init__(self,periodYears,radius,mass,ecc):
+    def __init__(self,periodYears,radius,mass,ecc,inclination,azimuth):
         self.periodYears=periodYears
         self.period=float(self.periodYears)*365.25*3600*24
         self.radius=radius
         self.mass=mass
         self.ecc=ecc
+        self.inclination=inclination
+        self.azimuth=azimuth
         self.smAxis=(G*starMass*self.period**2/(4*pi**2))**(1.0/3)
         self.latus=self.smAxis*(1-ecc**2)
         self.velocity=(G*starMass*(2/self.latus-1/self.smAxis))**(0.5)
         self.x=0.0
-        self.y=self.latus
-        self.angle=0.0
-        self.distance=self.latus/(1+ecc*cos(self.angle))
+        self.y=0.0
+        self.angle=pi/2
+        self.distance=self.latus/(1+ecc*cos(self.angle+self.azimuth))
         self.da=0.0
         self.dv=0.0
         self.transit=1
@@ -41,26 +43,30 @@ class Planet(object):
         self.transitTimes=[]
         self.averagePeriod=0.0
         self.ominusc=[]
-def effaccplanet(anglea, ecca, a0, x2, y2):
-    distance=a0/(1+ecca*cos(anglea))
+def effaccplanet(anglea, ecca, a0,azimuth, x2, y2):
+    distance=a0/(1+ecca*cos(anglea+azimuth))
     x1=distance*cos(anglea)
     y1=distance*sin(anglea)
-    if sin(anglea)==0 and x1>0:
-        angle02=3*pi/2
-    elif sin(anglea)==0 and x1<0:
+    if ecca*(cos(anglea)*sin(anglea+azimuth)-sin(anglea)*cos(anglea+azimuth))-sin(anglea)==0 and x1>0:
         angle02=pi/2
+        print 'hi'
+    elif ecca*(cos(anglea)*sin(anglea+azimuth)-sin(anglea)*cos(anglea+azimuth))-sin(anglea)==0 and x1<0:
+        angle02=3*pi/2
+        print 'ho'
     else:
-        angle02=atan(-(cos(anglea)+ecca)/sin(anglea))
-    if anglea>pi:
-        angle02=angle02-pi
+        angle02=atan((ecca*(sin(anglea)*sin(anglea+azimuth)+cos(anglea)*cos(anglea+azimuth))+cos(anglea))/(ecca*(cos(anglea)*sin(anglea+azimuth)-sin(anglea)*cos(anglea+azimuth))-sin(anglea)))
+    if ecca*(cos(anglea)*sin(anglea+azimuth)-sin(anglea)*cos(anglea+azimuth))-sin(anglea)>0:
+        angle02=angle02+pi
+
     if angle02<0:
         angle02=angle02+2*pi
     #now we have the correct gradient angle need to compare to position gradients
     if x1==x2 and y2>y1:
-        angle03=pi/2
-    elif x1==x2 and y1>y2:
         angle03=3*pi/2
-    angle03=atan((y2-y1)/(x2-x1))
+    elif x1==x2 and y1>y2:
+        angle03=pi/2
+    else:
+        angle03=atan((y2-y1)/(x2-x1))
     if y2>y1 and angle03<0:
         angle03=angle03+pi
     if y2<y1 and angle03>0:
@@ -71,7 +77,9 @@ def effaccplanet(anglea, ecca, a0, x2, y2):
     
     effaccp=-cos(angle04)/((x1-x2)**2+(y1-y2)**2)
     return effaccp
-def angle5(x1,y1,ecc,angle):
+def angle5(ecc,angle):
+    x1=cos(angle)
+    y1=sin(angle)
     if (x1==0 and y1>0):
         angleo=pi-atan(-(cos(angle)+ecc)/sin(angle))
     elif (x1==0 and y1<0):
@@ -96,7 +104,7 @@ planet_number=int(raw_input('How many planets?'))
 
 for a in range(0,planet_number):
     print 'Planet ' + str(a+1)
-    planet.append(Planet(float(raw_input("What is the period in years?")),6.371e6*float(raw_input('radius in earth radii?')),6e24*float(raw_input('planet mass in earth masses?')),float(raw_input("What is the eccentricity?"))))
+    planet.append(Planet(float(raw_input("What is the period in years?")),6.371e6*float(raw_input('radius in earth radii?')),6e24*float(raw_input('planet mass in earth masses?')),float(raw_input("What is the eccentricity?")),2*pi*float(raw_input('inlination in degrees?(between ±90)'))/360,2*pi*float(raw_input('azimuthal angle?(in degrees)'))/360))
 #will sort transit detectors later and plotting
 plot1=[]
 plot2=[]
@@ -109,8 +117,10 @@ repeat=5
 print testSteps
 for repeats in range(0,repeat):
     for a in range(1,planet_number+1):
-        planet[a].x=0.0
-        planet[a].y=planet[a].latus
+        planet[a].angle=pi/2
+        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
+        planet[a].x=planet[a].distance*cos(planet[a].angle)
+        planet[a].y=planet[a].distance*sin(planet[a].angle)
         planet[a].dv=0.0
         planet[a].orbitCounter=0
         planet[a].orbitTest=1
@@ -128,17 +138,17 @@ for repeats in range(0,repeat):
                 planet[a].angle=3*pi/2
             else:
                 planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
             for b in range (1,planet_number+1):
                 if b!=a:
                     # toavoid calculating the acc from itself
-                    planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
+                    planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus,planet[a].azimuth, planet[b].x, planet[b].y)*G*planet[b].mass              
             if repeats==(repeat-1):
                 planet[a].accTotal=planet[a].accTotal+abs(planet[a].da)
             planet[a].dv=planet[a].dv+planet[a].da*planet[1].period/precision
             planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange       
-            planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(precision*planet[a].distance)
-            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+            planet[a].angle=planet[a].angle+planet[a].velocity*planet[1].period*abs(cos(angle5(planet[a].ecc,planet[a].angle+planet[a].azimuth)))/(precision*planet[a].distance)
+            planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
         for a in range(1,planet_number+1):
             planet[a].x=planet[a].distance*cos(planet[a].angle)
             planet[a].y=planet[a].distance*sin(planet[a].angle)
@@ -157,14 +167,16 @@ for repeats in range(0,repeat):
 
 
 for a in range(1,planet_number+1):
-    planet[a].x=0.0
-    planet[a].y=planet[a].latus
+    planet[a].angle=pi/2
+    planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
+    planet[a].x=planet[a].distance*cos(planet[a].angle)
+    planet[a].y=planet[a].distance*sin(planet[a].angle)
     planet[a].dv=0.0
     planet[a].accMean=planet[a].accTotal/t
 dt=0.0
 t=0.0
 stepCounter=0
-while t<(planet[1].period*5):
+while t<(planet[1].period*2):
     stepCounter=stepCounter+1
     for a in range(1,planet_number+1):
         planet[a].da=0.0
@@ -178,11 +190,11 @@ while t<(planet[1].period*5):
             planet[a].angle=3*pi/2
         else:
             planet[a].angle=atan(planet[a].y/planet[a].x)+2*pi     
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
         for b in range (1,planet_number+1):
             if b!=a:
                 # toavoid calculating the acc from itself
-                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus, planet[b].x, planet[b].y)*G*planet[b].mass    
+                planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc, planet[a].latus,planet[a].azimuth, planet[b].x, planet[b].y)*G*planet[b].mass    
         if planet[a].da==0:
             planet[a].dt=planet[1].period*10/(step_number)
         else:
@@ -206,8 +218,8 @@ while t<(planet[1].period*5):
     for a in range(1,planet_number+1):
         planet[a].dv=planet[a].dv+planet[a].da*dt
         planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange   
-        planet[a].angle=planet[a].angle+planet[a].velocity*dt*abs(cos(angle5(planet[a].x,planet[a].y,planet[a].ecc,planet[a].angle)))/(planet[a].distance)
-        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle))
+        planet[a].angle=planet[a].angle+planet[a].velocity*dt*abs(cos(angle5(planet[a].ecc,planet[a].angle+planet[a].azimuth)))/(planet[a].distance)
+        planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azimuth))
     for a in range(1,planet_number+1):
         planet[a].x=planet[a].distance*cos(planet[a].angle)
         planet[a].y=planet[a].distance*sin(planet[a].angle)
@@ -221,7 +233,7 @@ while t<(planet[1].period*5):
             planet[a].lastTransit=t
         elif planet[a].transit==1 and not (planet[a].x<starRadius+planet[a].radius and planet[a].x>-starRadius-planet[a].radius and planet[a].y>0):
             planet[a].transit=0
-    plot1.append(planet[1].x)
+    plot1.append(-planet[1].y)
     plot2.append(t)
 for a in range(1,planet_number +1):
     if planet[a].transitCounter>1:
