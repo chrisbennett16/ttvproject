@@ -73,7 +73,56 @@ def angle5(ecc,angle):
     else:
         angleo=atan(y1/x1)+pi/2-atan(-(cos(angle)+ecc)/sin(angle))
     return angleo
-    
+def transitStart(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,precision,angle1):
+    solution=0.0
+    distance=((latus/(1+ecc*cos(angle1)))*(cos(angle1)*cos(inc)*cos(azimuth)+sin(angle1)*sin(azimuth))-xs)**2+((latus/(1+ecc*cos(angle1)))*sin(inc)*cos(angle1)-zs)**2-(rp+rs)**2
+    if distance==abs(distance) or (latus/(1+ecc*cos(angle1-azproj)))*(-cos(angle1-azproj)*cos(inc)*sin(azimuth)+sin(angle1-azproj)*sin(azimuth))<0:
+        start=1
+    else:
+        start=0
+    for a in range(0,360):
+        angle = a*2*pi/(precision*360)+angle1    
+        distance=((latus/(1+ecc*cos(angle)))*(cos(angle)*cos(inc)*cos(azimuth)+sin(angle)*sin(azimuth))-xs)**2+((latus/(1+ecc*cos(angle)))*sin(inc)*cos(angle)-zs)**2-(rp+rs)**2
+        if distance==abs(distance) or (latus/(1+ecc*cos(angle1-azproj)))*(-cos(angle1-azproj)*cos(inc)*sin(azimuth)+sin(angle1-azproj)*sin(azimuth))<0:
+            start=1
+        if distance!=abs(distance) and start==1:
+            if precision<10000000000:
+                solution=transitStart(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,precision*10,angle-2*pi/(precision*360))
+            else:
+                return angle1
+            break
+    if solution==0.0:
+        return 0.0
+    else:
+        return solution
+def transitEnd(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,precision,angle1):
+    solution=0.0    
+    distance=((latus/(1+ecc*cos(angle1)))*(cos(angle1)*cos(inc)*cos(azimuth)+sin(angle1)*sin(azimuth))-xs)**2+((latus/(1+ecc*cos(angle1)))*sin(inc)*cos(angle1)-zs)**2-(rp+rs)**2
+    if distance==abs(distance) or (latus/(1+ecc*cos(angle1-azproj)))*(-cos(angle1-azproj)*cos(inc)*sin(azimuth)+sin(angle1-azproj)*sin(azimuth))<0:
+        start=1
+    else:
+        start=0
+    for a in range(0,360):
+        angle = a*2*pi/(precision*360)+angle1    
+        distance=((latus/(1+ecc*cos(angle)))*(cos(angle)*cos(inc)*cos(azimuth)+sin(angle)*sin(azimuth))-xs)**2+((latus/(1+ecc*cos(angle)))*sin(inc)*cos(angle)-zs)**2-(rp+rs)**2
+        if distance!=abs(distance):
+            start=0
+        if (distance==abs(distance) or (latus/(1+ecc*cos(angle1-azproj)))*(-cos(angle1-azproj)*cos(inc)*sin(azimuth)+sin(angle1-azproj)*sin(azimuth))<0) and start==0:
+            if precision<10000000000:
+                solution=transitEnd(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,precision*10,angle-2*pi/(precision*360))
+            else:
+                return angle1
+            break
+    if solution==0.0:
+        return 0.0
+    else:
+        return solution
+def transitLength(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs):
+    angleEnd=transitEnd(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,1,0)
+    angleStart=transitStart(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,1,0)
+    length=(angleEnd-angleStart)*(latus/(1+ecc*cos(angleEnd-azproj)))/abs(cos(angle5(ecc,angleEnd-azproj)))
+    print angleEnd, angleStart    
+    return length
 
 #star inputs
 starMassInMs = raw_input('What is the stars mass in solar masses?')
@@ -202,21 +251,26 @@ while t<planet[1].period*10:
         planet[a].velocity=(G*starMass*(2/planet[a].distance-1/planet[a].smAxis))**(0.5)+planet[a].dv-planet[a].vchange   
         planet[a].angle=planet[a].angle+planet[a].velocity*dt*abs(cos(angle5(planet[a].ecc,planet[a].angle+planet[a].azproj)))/(planet[a].distance)
         planet[a].distance=planet[a].latus/(1+planet[a].ecc*cos(planet[a].angle+planet[a].azproj))
+    sunX=0.0
+    sunZ=0.0
     for a in range(1,planet_number+1):
         planet[a].x=planet[a].distance*(cos(planet[a].angle+planet[a].azproj)*cos(planet[a].inclination)*cos(planet[a].azimuth)+sin(planet[a].angle+planet[a].azproj)*sin(planet[a].azimuth))
         planet[a].y=planet[a].distance*(sin(planet[a].angle+planet[a].azproj)*cos(planet[a].azimuth)-cos(planet[a].angle+planet[a].azproj)*sin(planet[a].azimuth)*cos(planet[a].inclination))
         planet[a].z=planet[a].distance*sin(planet[a].inclination)*cos(planet[a].angle+planet[a].azproj)
-    
+        sunX=sunX-planet[a].x*planet[a].mass/starMass
+        sunZ=sunZ-planet[a].z*planet[a].mass/starMass
+
     #finding the transits of the planets
     for a in range(1,planet_number+1):
-        if (planet[a].x**2+planet[a].z**2)<(starRadius+planet[a].radius)**2 and planet[a].y>0 and planet[a].transit==0:
+        if ((planet[a].x-sunX)**2+(planet[a].z-sunZ)**2)<(starRadius+planet[a].radius)**2 and planet[a].y>0 and planet[a].transit==0:
             planet[a].transitCounter=planet[a].transitCounter+1            
             planet[a].transit=1    
 #the duration will be different as it doesn't necessarily transit thewhoel diameter
-            print 'Transit start for planet ' + str(a) + ' at ' + str(t)
+            duration =transitLength(planet[a].latus,planet[a].ecc,planet[a].inclination,planet[a].azimuth,planet[a].azproj,planet[a].radius,sunX,sunZ,starRadius)/planet[a].velocity
+            print 'Transit start for planet ' + str(a) + ' at ' + str(t) + ' with duration ' +str(duration)
             planet[a].transitTimes.append(t)            
             planet[a].lastTransit=t
-        elif planet[a].transit==1 and not ((planet[a].x**2+planet[a].z**2)<(starRadius+planet[a].radius)**2 and planet[a].y>0):
+        elif planet[a].transit==1 and not (((planet[a].x-sunX)**2+(planet[a].z-sunZ)**2)<(starRadius+planet[a].radius)**2 and planet[a].y>0):
             planet[a].transit=0
     plot2.append(t)
 for a in range(1,planet_number +1):
