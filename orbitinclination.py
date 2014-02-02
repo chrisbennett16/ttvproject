@@ -66,6 +66,8 @@ class Planet(object):
         self.averagePeriod=0.0
         #observed minus the calculated times for a linear emidermis, this is what is plotted eventually
         self.ominusc=[]
+        #hill radius is the radius form a planet that its gravity will dominate so orbits shall be unstable if this is reached (only really valid for low eccetricity) using the smallest radius to be sure it will be unstable
+        self.hillRadius=(self.latus/(1+ecc))*(self.mass/(3*starMass))**(1.0/3)
 #effaccplanet calculates the acceleration* due to each planet in the direction of travel. *The acceleration but without G or mass included
 def effaccplanet(angle, ecc, distance,i,azproj,azimuth,latus,x1,y1,z1, x2, y2,z2):
     #calculated by differentiation
@@ -144,9 +146,19 @@ def transitEnd(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,precision,angle1):
 def transitLength(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs):
     angleEnd=transitEnd(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,1,0)
     angleStart=transitStart(latus,ecc,inc,azimuth,azproj,rp,xs,zs,rs,1,0)
-    length=(angleEnd-angleStart)*(latus/(1+ecc*cos(angleEnd-azproj)))/abs(cos(angle5(ecc,angleEnd-azproj)))
-    print angleEnd, angleStart    
+    length=(angleEnd-angleStart)*(latus/(1+ecc*cos(angleEnd-azproj)))/abs(cos(angle5(ecc,angleEnd-azproj)))  
     return length
+#Calculates the TTV period for the orbits as long as it is not over 1000 of the shortest orbits, the first input must be the smaller one
+def TestOrbits(period1,period2):
+    a=1
+    totalPeriod=period1
+    while round((totalPeriod+0.000000001)%period2,6)!=0:
+        totalPeriod=period1*a
+        a=a+1
+        if a>1000:
+            print 'problem'
+            return 0
+    return a-1
 
 #star inputs, could make this into a class but not really necessary
 starMassInMs = raw_input('What is the stars mass in solar masses?')
@@ -169,15 +181,17 @@ plot2=[]
 
 #code to find average dv
 
-#teststeps gives the number of orbits the 1st planet that are required to give a complete cycle of the ttv as to avoid the velocity shift, it is an integer though so an error coud occur when using fractional orbits. possibly need to find lowest integer multiple
-testSteps=1
-for a in range(1,planet_number+1):
-    testSteps=testSteps*int(planet[a].periodYears)
+#teststeps gives the number of orbits the 1st planet that are required to give a complete cycle of the ttv as to avoid the velocity shift
+if planet[1].periodYears<planet[2].periodYears:
+    testSteps=TestOrbits(planet[1].periodYears,planet[2].periodYears)
+else:
+    testSteps=TestOrbits(planet[2].periodYears,planet[1].periodYears)*planet[2].periodYears/planet[1].periodYears
+
 print testSteps
 #precision gives the number of steps used per planet 1 orbit
 precision=1000
 #repeat is thenumber of iterations used to get the velocity shift, sometimes 2 is enouh, sometimes we need many more
-repeat=2
+repeat=3
 for repeats in range(0,repeat):
     #reset all the values to original ones, with the plnets all at pi/2
     for a in range(1,planet_number+1):
@@ -253,10 +267,14 @@ for a in range(1,planet_number+1):
 #setting dt and t to 0 as they give the time and timestep in the next section
 dt=0.0
 t=0.0
+stableOrbit=1
+#just to initiate the sun position for the first lap
+sunX=0.0
+sunZ=0.0
 #stepcounter gives thetotal number of steps used, it is just for interest and can be used to give a time estimate for code completion
 stepCounter=0
 #the main code simulating the transit, runs until a certain number of planet1 periods are complete. 
-while t<planet[1].period*10:
+while t<planet[1].period*50:
     stepCounter=stepCounter+1
     for a in range(1,planet_number+1):
         planet[a].da=0.0
@@ -274,6 +292,11 @@ while t<planet[1].period*10:
             if b!=a:
                 # toavoid calculating the acc from itself
                 planet[a].da=planet[a].da+effaccplanet(planet[a].angle, planet[a].ecc,planet[a].distance,planet[a].inclination, planet[a].azproj,planet[a].azimuth,planet[a].latus, planet[a].x,planet[a].y,planet[a].z,planet[b].x, planet[b].y,planet[b].z)*G*planet[b].mass              
+                #seeing if thehill radius is violated at any point
+                if (planet[a].x-planet[b].x)**2+(planet[a].y-planet[b].y)**2+(planet[a].z-planet[b].z)**2<planet[a].hillRadius**2:
+                    if stableOrbit==1:                    
+                        print "UNSTABLE ORBIT"
+                        stableOrbit=0
         #calculating the step size, for no acceleration use the given precision/10
         if planet[a].da==0:
             planet[a].dt=planet[1].period*10/(step_number)
@@ -292,10 +315,15 @@ while t<planet[1].period*10:
                 
 #may have a problem for dt if one transiting and other not quite
         #if the planet is near a transit dt should be smaller for all, could get rid of this once thetransit has started
-        if planet[a].x**2+planet[a].z**2<(2*(starRadius+planet[a].radius))**2 and planet[a].y>0:            
-            #for 3 seconds precision stepnumber*1000 is 10000000            
-            dt=planet[1].period/(10000000)
-        elif planet[a].x**2+planet[a].z**2<(10*(starRadius+planet[a].radius))**2 and planet[a].y>0:            
+        if (planet[a].x-sunX)**2+(planet[a].z-sunZ)**2<(2*(starRadius+planet[a].radius))**2 and planet[a].y>0 and (planet[a].x-sunX)>0:            
+            #for 3 seconds precision stepnumber*1000 is 10000000    
+            #this means if the transit has started it can run at lower precision again
+            if (planet[a].x-sunX)**2+(planet[a].z-sunZ)**2>(starRadius+planet[a].radius)**2:
+                dt=planet[1].period/(10000000)
+                #this break prevents the 2nd planet reducing precision by being near to the transit            
+                break
+
+        elif (planet[a].x-sunX)**2+(planet[a].z-sunZ)**2<(10*(starRadius+planet[a].radius))**2 and planet[a].y>0 and (planet[a].x-sunX)>0:            
             #for 3 seconds precision stepnumber*1000 is 100000000            
             dt=planet[1].period/(1000000)
     #step on in time by the calculated dt
@@ -329,17 +357,21 @@ while t<planet[1].period*10:
             print 'Transit start for planet ' + str(a) + ' at ' + str(t) + ' with duration ' +str(duration)
             #crates a list of the beginning of the transit times            
             planet[a].transitTimes.append(t)
+            #pltting the x axis of time
+            if a==1:
+                print dt
+                plot2.append(t)
             # this variable gives the time of start of the last transit detected, used togive average periods            
             planet[a].lastTransit=t
         #detects it if nottransit is happening
         elif planet[a].transit==1 and not (((planet[a].x-sunX)**2+(planet[a].z-sunZ)**2)<(starRadius+planet[a].radius)**2 and planet[a].y>0):
             #variable to say no transit occured on the previous step            
             planet[a].transit=0
-    #pltting the x axis of time
-    plot2.append(t)
+
     
 #data handlers
 for a in range(1,planet_number +1):
+    print planet[a].hillRadius
     if planet[a].transitCounter>1:
         #calculates theaverage period using the transit start times
         planet[a].averagePeriod=float((planet[a].lastTransit-planet[a].transitTimes[0]))/(planet[a].transitCounter-1)
@@ -352,8 +384,9 @@ for a in range(1,planet_number +1):
     for b in range (0, len(planet[a].transitTimes)):
         #calculates the difference in the observed and calculated transit times using the average period (should be able to use the kepler period as they should be the same)
         planet[a].ominusc.append(planet[a].transitTimes[b]-(planet[a].averagePeriod*(b+1)))
-        
+print len(plot2),len(planet[1].ominusc)
 #plots a graph
-plot(planet[a].ominusc)
+plot(plot2,planet[1].ominusc)
 #prints thenumber of steps taken (approx stepnumber + transit steps)
 print stepCounter
+print planet[1].ominusc
